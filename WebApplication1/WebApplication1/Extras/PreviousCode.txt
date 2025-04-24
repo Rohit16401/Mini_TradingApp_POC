@@ -1,0 +1,318 @@
+﻿function initChart(canvasId, bars, { support, resistance, profile }) {
+    console.log("bars :- ", bars[0].Time);
+    console.log("support :- ", support);
+    console.log("resistance :- ", resistance);
+    console.log("profile :- ", profile);
+
+    const ctx = document.getElementById(canvasId).getContext("2d");
+
+    new Chart(ctx, {
+        type: "candlestick",
+        data: {
+            datasets: [
+                {
+                    label: "Price",
+                    data: bars.map(b => ({
+                        x: new Date(b.Time),
+                        o: b.Open, h: b.High, l: b.Low, c: b.Close
+                    })),
+                    barThickness: 4  // Adjust for visibility
+                },
+                {
+                    label: "Support",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: support })),
+                    borderColor: "green", borderWidth: 2, fill: false
+                },
+                {
+                    label: "Resistance",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: resistance })),
+                    borderColor: "red", borderWidth: 2, fill: false
+                },
+                {
+                    label: "High",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: profile.HighPrice })),
+                    borderColor: "pink", fill: false
+                },
+                {
+                    label: "Low",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: profile.LowPrice })),
+                    borderColor: "grey", fill: false
+                },
+                {
+                    label: "POC",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: profile.PointOfControl })),
+                    borderColor: "purple", fill: false
+                },
+                {
+                    label: "VAH",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: profile.ValueAreaHigh })),
+                    borderColor: "orange", fill: false
+                },
+                {
+                    label: "VAL",
+                    type: "line",
+                    data: bars.map(b => ({ x: new Date(b.Time), y: profile.ValueAreaLow })),
+                    borderColor: "orange", fill: false
+                }
+            ]
+        },
+        options: {
+            plugins: {
+                tooltip: {
+                    mode: 'nearest',
+                    intersect: false,
+                    position: 'nearest',
+                    callbacks: {
+                        label: function (context) {
+                            const data = context.raw;
+                            const datasetLabel = context.dataset.label;
+
+                            if (data && data.o !== undefined) {
+                                return [
+                                    `Time: ${new Date(data.x).toLocaleString()}`,
+                                    `Open: ${data.o}`,
+                                    `High: ${data.h}`,
+                                    `Low: ${data.l}`,
+                                    `Close: ${data.c}`
+                                ];
+                            }
+
+                            if (context.parsed && context.parsed.y !== undefined) {
+                                return `${datasetLabel}: ${context.parsed.y}`;
+                            }
+
+                            return datasetLabel;
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        usePointStyle: true
+                    }
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: false },
+                        drag: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            borderColor: 'rgba(0, 0, 0, 0.3)',
+                            borderWidth: 1
+                        },
+                        mode: 'x'
+                    },
+                    limits: {
+                        x: { minRange: 1 }
+                    },
+                    onZoomComplete({ chart }) {
+                        const minTime = chart.scales.x.min;
+                        const maxTime = chart.scales.x.max;
+
+                        const visibleBars = chart.data.datasets[0].data.filter(bar =>
+                            new Date(bar.x) >= minTime && new Date(bar.x) <= maxTime
+                        );
+
+                        // Now you have all candles in the selected range
+                        const highs = visibleBars.map(b => b.h);
+                        const lows = visibleBars.map(b => b.l);
+
+                        const highInRange = Math.max(...highs);
+                        const lowInRange = Math.min(...lows);
+
+                        // Adding custom range lines dynamically
+                        const customSupport = lowInRange; // Could be a custom support logic
+                        const customResistance = highInRange; // Could be a custom resistance logic
+
+                        // Log for debugging
+                        console.log("Selected range High:", highInRange);
+                        console.log("Selected range Low:", lowInRange);
+                        console.log("Support/Resistance (custom):", customSupport, customResistance);
+
+                        // Update the chart with the new datasets for support/resistance
+                        chart.data.datasets = [
+                            {
+                                label: "Price",
+                                data: bars.map(b => ({
+                                    x: new Date(b.Time),
+                                    o: b.Open, h: b.High, l: b.Low, c: b.Close
+                                })),
+                                barThickness: 4
+                            },
+                            {
+                                label: "Support",
+                                type: "line",
+                                data: bars.map(b => ({ x: new Date(b.Time), y: support })),
+                                borderColor: "green", borderWidth: 2, fill: false
+                            },
+                            {
+                                label: "Resistance",
+                                type: "line",
+                                data: bars.map(b => ({ x: new Date(b.Time), y: resistance })),
+                                borderColor: "red", borderWidth: 2, fill: false
+                            },
+                            {
+                                label: "Custom Support",
+                                type: "line",
+                                data: bars.map(b => ({ x: new Date(b.Time), y: customSupport })),
+                                borderColor: "blue", borderWidth: 2, borderDash: [5, 5], fill: false
+                            },
+                            {
+                                label: "Custom Resistance",
+                                type: "line",
+                                data: bars.map(b => ({ x: new Date(b.Time), y: customResistance })),
+                                borderColor: "purple", borderWidth: 2, borderDash: [5, 5], fill: false
+                            }
+                        ];
+
+                        chart.update(); // Re-render the chart to reflect changes
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'hour',
+                        displayFormats: {
+                            hour: 'HH:mm',
+                            day: 'MMM dd'
+                        }
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        color: '#555',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.2)',
+                        drawTicks: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: '#333',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: value => value.toFixed(2),
+                        stepSize: 1,
+                        color: '#555',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.2)',
+                        borderColor: '#ccc',
+                        drawTicks: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Price',
+                        color: '#333',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            },
+            onClick: (evt, elements, chart) => {
+                if (elements.length && elements[0].datasetIndex > 0) {
+                    openIndicatorSettings(chart.data.datasets[elements[0].datasetIndex].label);
+                }
+            }
+        }
+    });
+
+
+}
+
+function openIndicatorSettings(indicatorName) {
+    const pane = document.getElementById("settingsPane");
+    if (!pane) return;
+    pane.style.display = "block";
+    pane.querySelector(".title").innerText = indicatorName + " Settings";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+@{
+    Layout = null;
+    var bars = (string)ViewBag.BarsJson;
+    var support = (decimal)ViewBag.Support;
+    var resistance = (decimal)ViewBag.Resistance;
+    var profile = ViewBag.Profile as string;
+    // profile JSON has HighPrice, LowPrice, PointOfControl, ValueAreaHigh, ValueAreaLow
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script> <!-- Adds support for candlestick chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script> <!-- Date adapter for time series -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+
+    <script  src="~/js/chart‑init.js"></script>
+</head>
+<body>
+    <div style="overflow-x: auto; width: 100%;"> 
+    <canvas id="priceChart" width="1000" height="500"></canvas>
+    </div>
+    <script>
+        const rawBars = @Html.Raw(bars);
+        const profileObj = @Html.Raw(profile);
+         
+        initChart("priceChart", rawBars, {
+          support:     @support,
+          resistance:  @resistance,
+          profile:     profileObj
+        });
+         
+
+        function resetZoom() {
+    const chart = Chart.getChart("priceChart"); // replace with your canvas ID
+    chart.resetZoom();
+    }
+    </script>
+    <button onclick="resetZoom()">Reset Zoom</button
+        
+    
+</body>
+</html>

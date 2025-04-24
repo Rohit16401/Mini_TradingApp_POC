@@ -1,0 +1,44 @@
+﻿@{
+    Layout = null;
+    var bars = (string)ViewBag.BarsJson;
+    var support = (decimal)ViewBag.Support;
+    var resistance = (decimal)ViewBag.Resistance;
+    var profile = ViewBag.Profile as string;
+    // profile JSON has HighPrice, LowPrice, PointOfControl, ValueAreaHigh, ValueAreaLow
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script> <!-- Adds support for candlestick chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script> <!-- Date adapter for time series -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+
+    <script  src="~/js/chart‑init.js"></script>
+</head>
+<body>
+    <div style="overflow-x: auto; width: 100%;"> 
+    <canvas id="priceChart" width="1000" height="500"></canvas>
+    </div>
+    <script>
+        const rawBars = @Html.Raw(bars);
+        const profileObj = @Html.Raw(profile);
+         
+        initChart("priceChart", rawBars, {
+          support:     @support,
+          resistance:  @resistance,
+          profile:     profileObj
+        });
+         
+
+        function resetZoom() {
+    const chart = Chart.getChart("priceChart"); // replace with your canvas ID
+    chart.resetZoom();
+    }
+    </script>
+    <button onclick="resetZoom()">Reset Zoom</button
+        
+    
+</body>
+</html>
